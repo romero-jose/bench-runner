@@ -1,0 +1,4 @@
+(executable
+ (public_name bench_runner)
+ (name main)
+ (libraries bench_runner cmdliner))

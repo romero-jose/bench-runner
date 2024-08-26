@@ -1,0 +1,3 @@
+(library
+ (name bench_runner)
+ (libraries cmdliner))
