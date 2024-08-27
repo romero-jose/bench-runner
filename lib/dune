@@ -1,3 +1,4 @@
 (library
  (name bench_runner)
+ (modules lib utils)
  (libraries cmdliner))
