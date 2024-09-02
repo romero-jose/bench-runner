@@ -43,9 +43,10 @@ module Benchmark = struct
       config.configs
 end
 
-let build_dir = "_bench"
-let dest_path path = Filename.concat build_dir path
-let compiled_path path = Filename.chop_extension (dest_path path)
+let dest_path ~build_dir path = Filename.concat build_dir path
+
+let compiled_path ~build_dir path =
+  Filename.chop_extension (dest_path ~build_dir path)
 
 let find_benchmarks dir =
   let dirs = Sys.readdir dir in
@@ -98,7 +99,7 @@ let build_config (config : Config.t) =
   List.iter (build_program config.compiler) config.programs;
   ()
 
-let build (bench : Benchmark.t) =
+let build ~build_dir (bench : Benchmark.t) =
   Format.printf "Building benchmark %s\n%!" bench.name;
   mkdir build_dir;
   let src_dir = Filename.concat "benchmarks" bench.name in
@@ -109,20 +110,20 @@ let build (bench : Benchmark.t) =
   popd ();
   ()
 
-let run (bench : Benchmark.t) =
+let run ~build_dir (bench : Benchmark.t) =
   Format.printf "Running benchmark %s\n%!" bench.name;
   bench.configs
   |> List.iter (fun (config : Config.t) ->
          config.programs
          |> List.iter (fun (program : Program.t) ->
-                let path = compiled_path program.filename in
+                let path = compiled_path ~build_dir program.filename in
                 Format.printf "Running %s\n%!" path;
                 let cmd = Filename.quote_command path [] in
                 let time_in_seconds = time cmd in
                 Format.printf "Time: %fs\n%!" time_in_seconds));
   ()
 
-let clean (bench : Benchmark.t) =
+let clean ~build_dir (bench : Benchmark.t) =
   Format.printf "Cleaning benchmark %s\n%!" bench.name;
   let dir = Filename.concat build_dir bench.name in
   if Sys.file_exists dir then rm ~args:[ "-r" ] ~file:dir;
