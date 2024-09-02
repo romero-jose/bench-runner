@@ -52,8 +52,9 @@ let find_benchmarks dir =
   let dirs = Sys.readdir dir in
   pushd dir;
   let benchmarks =
-    dirs
-    |> Array.map (fun bench_name ->
+    dirs |> Array.to_list
+    |> List.filter (fun dir -> Sys.is_directory dir)
+    |> List.map (fun bench_name ->
            let subdir = bench_name in
            Format.printf "Benchmark: %s\n%!" subdir;
            let compilers =
@@ -74,7 +75,6 @@ let find_benchmarks dir =
              |> Array.to_list
            in
            (bench_name, compilers))
-    |> Array.to_list
   in
   popd ();
   benchmarks
