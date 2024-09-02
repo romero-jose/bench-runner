@@ -2,6 +2,12 @@
 
 Simple benchmark runner written in OCaml. Work in progress.
 
+The expected directory structure for benchmarks is:
+
+```
+<benchmark_name>/<compiler_name>/src/<source_file>
+```
+
 ## Usage
 
 To use `bench_runner`, you can run the following command:

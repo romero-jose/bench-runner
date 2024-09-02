@@ -48,36 +48,58 @@ let dest_path ~build_dir path = Filename.concat build_dir path
 let compiled_path ~build_dir path =
   Filename.chop_extension (dest_path ~build_dir path)
 
-let find_benchmarks dir =
+let find_benchmarks ~benchmarks dir =
+  if not (Sys.file_exists dir) then (
+    Printf.eprintf "Directory %s does not exist" dir;
+    exit 1);
   let dirs = Sys.readdir dir in
   pushd dir;
-  let benchmarks =
+  let filter =
+    if benchmarks = [] then fun _ -> true
+    else fun benchmark_name -> List.mem benchmark_name benchmarks
+  in
+  let compilers =
     dirs |> Array.to_list
-    |> List.filter (fun dir -> Sys.is_directory dir)
-    |> List.map (fun bench_name ->
-           let subdir = bench_name in
-           Format.printf "Benchmark: %s\n%!" subdir;
-           let compilers =
-             Sys.readdir subdir
-             |> Array.map (fun compiler_name ->
-                    let compiler_dir = Filename.concat subdir compiler_name in
-                    Format.printf "Compiler: %s\n%!" compiler_dir;
-                    let files = Sys.readdir compiler_dir in
-                    let programs =
-                      files |> Array.to_list
-                      |> List.filter_map (fun file ->
-                             let filename = Filename.concat compiler_dir file in
-                             if not (Sys.is_directory filename) then
-                               Some (Program.create ~name:file ~filename)
-                             else None)
+    |> List.filter Sys.is_directory
+    |> List.map (fun compiler_name ->
+           let compiler_dir = Filename.concat "." compiler_name in
+           let benchmarks =
+             Sys.readdir compiler_dir |> Array.to_list
+             |> List.filter (fun benchmark_name ->
+                    Sys.is_directory
+                      (Filename.concat compiler_dir benchmark_name))
+             |> List.filter filter
+             |> List.map (fun benchmark_name ->
+                    let benchmark_dir =
+                      Filename.concat compiler_dir benchmark_name
                     in
-                    (compiler_name, programs))
-             |> Array.to_list
+                    let programs =
+                      Sys.readdir benchmark_dir |> Array.to_list
+                      |> List.filter (fun program_name ->
+                             Sys.is_directory
+                               (Filename.concat benchmark_dir program_name))
+                      |> List.map (fun program_name ->
+                             let program_dir =
+                               Filename.concat benchmark_dir program_name
+                             in
+                             Sys.readdir program_dir |> Array.to_list
+                             |> List.filter (fun file ->
+                                    not
+                                      (Sys.is_directory
+                                         (Filename.concat program_dir file)))
+                             |> List.map (fun file ->
+                                    let file_path =
+                                      Filename.concat program_dir file
+                                    in
+                                    Program.create ~name:file
+                                      ~filename:file_path))
+                    in
+                    (benchmark_name, programs))
            in
-           (bench_name, compilers))
+           (compiler_name, benchmarks))
   in
   popd ();
-  benchmarks
+  compilers
 
 let compile (compiler : Compiler.t) (src : string) (dst : string) =
   let cmd =

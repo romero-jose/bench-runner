@@ -37,28 +37,28 @@ let run_benchmarks dir benchmarks build_dir compilers =
         | command :: options -> (name, Compiler.create ~name ~command ~options))
       compilers
   in
-  let found_benchmarks = find_benchmarks dir in
-  let filter =
-    if benchmarks = [] then fun x -> x
-    else List.filter (fun (name, _) -> List.mem name benchmarks)
-  in
+  let found_benchmarks = find_benchmarks ~benchmarks dir in
   let benchmarks =
-    found_benchmarks |> filter
-    |> List.map (fun (name, compilers) ->
-           let compilers =
-             compilers
-             |> List.map (fun (compiler_name, programs) ->
-                    let compiler = List.assoc compiler_name compilers_env in
-                    Config.create ~compiler ~programs)
+    found_benchmarks
+    |> List.map (fun (compiler_name, benchmarks) ->
+           let compiler = List.assoc compiler_name compilers_env in
+           let configs =
+             benchmarks
+             |> List.map (fun (_benchmark_name, programs) ->
+                    programs
+                    |> List.map (fun programs ->
+                           Config.create ~compiler ~programs))
+             |> List.flatten
            in
-           Benchmark.create ~name ~configs:compilers)
+           Benchmark.create ~name:compiler_name ~configs)
   in
-  let first_benchmark = List.hd benchmarks in
-  Format.printf "@[Finished configuring benchmark:@;<1 2>%a@;<0 0>@]"
-    Benchmark.pp first_benchmark;
-  build ~build_dir first_benchmark;
-  run ~build_dir first_benchmark;
-  ()
+  benchmarks
+  |> List.iter (fun benchmark ->
+         Format.printf "@[Finished configuring benchmark:@;<1 2>%a@;<0 0>@]"
+           Benchmark.pp benchmark;
+         build ~build_dir benchmark;
+         run ~build_dir benchmark;
+         ())
 
 let cmd =
   let doc = "run benchmarks" in
