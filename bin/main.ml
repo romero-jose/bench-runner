@@ -18,8 +18,8 @@ let () =
            Benchmark.create ~name ~configs:compilers)
   in
   let first_benchmark = List.hd benchmarks in
-  Format.printf "@[Finished configuring benchmark:@;<1 2>%a@;<0 0>@]" Benchmark.pp
-    first_benchmark;
+  Format.printf "@[Finished configuring benchmark:@;<1 2>%a@;<0 0>@]"
+    Benchmark.pp first_benchmark;
   build first_benchmark;
   run first_benchmark;
   ()

@@ -44,7 +44,6 @@ module Benchmark = struct
 end
 
 let build_dir = "_bench"
-
 let dest_path path = Filename.concat build_dir path
 let compiled_path path = Filename.chop_extension (dest_path path)
 
@@ -106,21 +105,21 @@ let build (bench : Benchmark.t) =
   let dst_dir = build_dir in
   cp ~args:[ "-r" ] ~src:src_dir ~dst:dst_dir;
   pushd dst_dir;
-  ls ~args:[ "-l" ] ~dir:".";
   List.iter build_config bench.configs;
   popd ();
   ()
 
 let run (bench : Benchmark.t) =
   Format.printf "Running benchmark %s\n%!" bench.name;
-  bench.configs |> List.iter (fun (config : Config.t) ->
-    config.programs |> List.iter (fun (program : Program.t) ->
-      Format.printf "Running %s\n%!" program.name;
-      let cmd = Filename.quote_command (compiled_path program.filename) [] in
-      Format.printf "%s\n%!" cmd;
-      pwd ();
-      time cmd
-    ));
+  bench.configs
+  |> List.iter (fun (config : Config.t) ->
+         config.programs
+         |> List.iter (fun (program : Program.t) ->
+                let path = compiled_path program.filename in
+                Format.printf "Running %s\n%!" path;
+                let cmd = Filename.quote_command path [] in
+                let time_in_seconds = time cmd in
+                Format.printf "Time: %fs\n%!" time_in_seconds));
   ()
 
 let clean (bench : Benchmark.t) =

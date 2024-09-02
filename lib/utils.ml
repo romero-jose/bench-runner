@@ -1,5 +1,8 @@
 let directory_stack : string Stack.t = Stack.create ()
 
+let pp_list ~sep pp_item =
+  Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf sep) pp_item
+
 let cp ~args ~src ~dst =
   let cmd = Filename.quote_command "cp" (args @ [ src; dst ]) in
   Format.printf "%s\n%!" cmd;
@@ -35,20 +38,35 @@ let ls ~args ~dir =
   | 0 -> ()
   | _ -> failwith "ls failed with nonzero exit code"
 
+let parse_seconds (s : string) =
+  match
+    Scanf.ksscanf s
+      (fun _ _ -> None)
+      "%dm%fs"
+      (fun m s -> Some (Float.of_int (m * 60) +. s))
+  with
+  | Some seconds -> seconds
+  | None -> failwith "parse_seconds: failed to parse seconds"
+
+let parse_time (output : string) =
+  match
+    Scanf.ksscanf output
+      (fun _ _ -> None)
+      " real %s user %s sys %s"
+      (fun s1 s2 s3 -> Some (s1, s2, s3))
+  with
+  | Some (real, _user, _sys) -> parse_seconds real
+  | None -> failwith "parse_time: failed to parse time output"
+
 let time cmd =
   let tmp = Filename.temp_file "time" "" in
-  let cmd = Filename.quote_command "time" ~stdout:tmp [ cmd ] in
-  Format.printf "%s\n%!" cmd;
+  let cmd = Format.sprintf "{ time %s ; } 2> %s" cmd tmp in
   (match Sys.command cmd with
   | 0 -> ()
   | _ -> failwith "time failed with nonzero exit code");
-  let _output = In_channel.with_open_text tmp In_channel.input_all in
-  Format.printf "output = '%s'\n%!" _output;
-  ()
+  let output = In_channel.with_open_text tmp In_channel.input_all in
+  parse_time output
 
-let pwd () = 
+let pwd () =
   let dir = Sys.getcwd () in
   Format.printf "Current directory is %s\n%!" dir
-
-let pp_list ~sep pp_item =
-  Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf sep) pp_item
