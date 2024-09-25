@@ -41,7 +41,13 @@ let run_benchmarks dir benchmarks build_dir compilers =
   let benchmarks =
     found_benchmarks
     |> List.map (fun (compiler_name, benchmarks) ->
-           let compiler = List.assoc compiler_name compilers_env in
+           let compiler =
+             match List.assoc_opt compiler_name compilers_env with
+             | Some c -> c
+             | None ->
+                 failwith
+                   (Format.sprintf "compiler '%s' not found" compiler_name)
+           in
            let configs =
              benchmarks
              |> List.map (fun (_benchmark_name, programs) ->
